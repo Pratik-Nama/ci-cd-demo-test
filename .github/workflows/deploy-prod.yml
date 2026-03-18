@@ -1,0 +1,36 @@
+name: 🚀 Deploy PROD
+
+on:
+  workflow_dispatch:
+    inputs:
+      prod_india:
+        description: "Deploy to prod-india?"
+        type: choice
+        options: [no, yes]
+        default: no
+
+      prod_canada:
+        description: "Deploy to prod-canada?"
+        type: choice
+        options: [no, yes]
+        default: no
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - env: prod-india
+            input: prod_india
+
+          - env: prod-canada
+            input: prod_canada
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🚀 Deploy PROD
+        if: github.event.inputs[matrix.input] == 'yes'
+        run: echo "✅ Deploying to ${{ matrix.env }}"
