@@ -1,6 +1,7 @@
 name: 🚀 Deploy PROD
 
 on:
+  # ✅ Manual trigger
   workflow_dispatch:
     inputs:
       prod_india:
@@ -14,6 +15,11 @@ on:
         type: choice
         options: [no, yes]
         default: no
+
+  # ✅ Auto trigger on push to main
+  push:
+    branches:
+      - main
 
 jobs:
   deploy:
@@ -29,8 +35,17 @@ jobs:
             input: prod_canada
 
     steps:
-      - uses: actions/checkout@v4
+      - name: 🧾 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔍 Debug Trigger
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
 
       - name: 🚀 Deploy PROD
-        if: github.event.inputs[matrix.input] == 'yes'
-        run: echo "✅ Deploying to ${{ matrix.env }}"
+        if: |
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs[matrix.input] == 'yes')
+        run: |
+          echo "✅ Deploying to ${{ matrix.env }}"
