@@ -32,13 +32,15 @@ jobs:
       - name: 🧾 Checkout
         uses: actions/checkout@v4
 
+      # 🔍 DEBUG (VERY IMPORTANT)
       - name: 🔍 Debug Inputs
         run: |
-          echo "prod_india: ${{ github.event.inputs.prod_india }}"
-          echo "prod_canada: ${{ github.event.inputs.prod_canada }}"
-          echo "Current: ${{ matrix.env }}"
+          echo "Current Env: ${{ matrix.env }}"
+          echo "Input Key: ${{ matrix.input }}"
+          echo "Input Value: '${{ github.event.inputs[matrix.input] }}'"
 
+      # ✅ STRICT CONDITION (FIX)
       - name: 🚀 Deploy PROD
-        if: github.event.inputs[matrix.input] == 'yes'
+        if: ${{ github.event.inputs[matrix.input] == 'yes' }}
         run: |
           echo "✅ Deploying to ${{ matrix.env }}"
