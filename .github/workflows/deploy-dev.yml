@@ -1,0 +1,45 @@
+name: 🚀 Deploy DEV
+
+on:
+  workflow_dispatch:
+    inputs:
+      dev_india:
+        description: "Deploy to dev-india?"
+        type: choice
+        options: [no, yes]
+        default: no
+
+      dev_canada:
+        description: "Deploy to dev-canada?"
+        type: choice
+        options: [no, yes]
+        default: no
+
+      demo_india:
+        description: "Deploy to demo-india?"
+        type: choice
+        options: [no, yes]
+        default: no
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - env: dev-india
+            input: dev_india
+
+          - env: dev-canada
+            input: dev_canada
+
+          - env: demo-india
+            input: demo_india
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🚀 Deploy DEV
+        if: github.event.inputs[matrix.input] == 'yes'
+        run: echo "✅ Deploying to ${{ matrix.env }}"
