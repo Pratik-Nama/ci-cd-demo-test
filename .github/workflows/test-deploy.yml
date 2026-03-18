@@ -28,9 +28,6 @@ jobs:
           - env: prod-canada
             branch: main
 
-    # ✅ Correct job-level condition (AFTER matrix)
-    if: github.ref_name == matrix.branch
-
     steps:
       - name: 🧾 Checkout
         uses: actions/checkout@v4
@@ -44,14 +41,15 @@ jobs:
       - name: 📦 Build Project
         run: mvn clean package -DskipTests
 
-      # 🔍 Optional Debug (recommended)
+      # ✅ REAL FIX: Step-level condition (not exit 0)
+      - name: 🚀 Simulated Deploy
+        if: github.ref_name == matrix.branch
+        run: |
+          echo "✅ Deploying to ${{ matrix.env }}"
+
+      # 🔍 Optional Debug
       - name: 🔍 Debug Info
         run: |
           echo "Branch: ${{ github.ref_name }}"
           echo "Matrix Branch: ${{ matrix.branch }}"
           echo "Environment: ${{ matrix.env }}"
-
-      # ✅ Simulated Deploy
-      - name: 🚀 Simulated Deploy
-        run: |
-          echo "✅ Deploying to ${{ matrix.env }}"
