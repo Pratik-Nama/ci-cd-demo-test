@@ -16,31 +16,25 @@ on:
         default: no
 
 jobs:
-  deploy:
+
+  deploy-prod-india:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        include:
-          - env: prod-india
-            input: prod_india
-
-          - env: prod-canada
-            input: prod_canada
+    if: ${{ github.event.inputs.prod_india == 'yes' }}
 
     steps:
       - name: 🧾 Checkout
         uses: actions/checkout@v4
 
-      # 🔍 DEBUG (VERY IMPORTANT)
-      - name: 🔍 Debug Inputs
-        run: |
-          echo "Current Env: ${{ matrix.env }}"
-          echo "Input Key: ${{ matrix.input }}"
-          echo "Input Value: '${{ github.event.inputs[matrix.input] }}'"
+      - name: 🚀 Deploy prod-india
+        run: echo "✅ Deploying to prod-india"
 
-      # ✅ STRICT CONDITION (FIX)
-      - name: 🚀 Deploy PROD
-        if: ${{ github.event.inputs[matrix.input] == 'yes' }}
-        run: |
-          echo "✅ Deploying to ${{ matrix.env }}"
+  deploy-prod-canada:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.prod_canada == 'yes' }}
+
+    steps:
+      - name: 🧾 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy prod-canada
+        run: echo "✅ Deploying to prod-canada"
