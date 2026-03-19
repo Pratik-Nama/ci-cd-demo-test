@@ -3,31 +3,21 @@ name: 🚀 Deploy PRODUCTION
 on:
   workflow_dispatch:
     inputs:
-      prod_india:
-        description: "Deploy to Production India?"
+      target_region:
+        description: "Select Production Region to Deploy"
         required: true
         type: choice
         options:
-          - 'No'
-          - 'Yes'
-        default: 'No'
-      prod_canada:
-        description: "Deploy to Production Canada?"
-        required: true
-        type: choice
-        options:
-          - 'No'
-          - 'Yes'
-        default: 'No'
-      # ── Add more regions here when needed (up to ~20-22 inputs max) ──
-      # prod_usa:
-      #   description: "Deploy to Production USA?"
-      #   required: true
-      #   type: choice
-      #   options: [ 'No', 'Yes' ]
-      #   default: 'No'
+          - india
+          - canada
+          # Add more regions here when needed
+          # - usa
+          # - uk
+          # - australia
+          # - germany
+        default: india
 
-  # Optional: auto-trigger on tags (like your second example)
+  # Optional: auto-deploy on version tags (like your Amplifi example)
   # push:
   #   tags: [ 'v[0-9]+.[0-9]+.[0-9]+*' ]
 
@@ -39,66 +29,45 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - name: ❌ Fail if nothing selected
+      - name: Show selected region
         run: |
-          if [[ "${{ inputs.prod_india }}" == 'No' && "${{ inputs.prod_canada }}" == 'No' ]]; then
-            # Add more conditions when you add more regions
-            # && "${{ inputs.prod_usa }}" == 'No'
-            echo "❌ Please select at least one region to deploy!"
-            exit 1
-          fi
+          echo "Deploying to: ${{ inputs.target_region }}"
 
-      - name: Show selected regions
-        run: |
-          echo "Selected deployments:"
-          echo "  India  : ${{ inputs.prod_india }}"
-          echo "  Canada : ${{ inputs.prod_canada }}"
-          # echo "  USA    : ${{ inputs.prod_usa }}"
-
-  # ── India deployment job ────────────────────────────────────────
-  deploy-prod-india:
+  deploy:
     runs-on: ubuntu-latest
     needs: validate
-    if: ${{ inputs.prod_india == 'Yes' }}
-    environment: production-india          # ← Uncomment when you create this environment
+    environment: production-${{ inputs.target_region }}   # creates production-india, production-canada, etc.
     steps:
       - name: 🧾 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🚀 Deploy to Production India
+      - name: Determine deployment target
+        id: target
         run: |
-          echo "✅ Starting deployment to prod-india..."
-          # ── Your real deploy commands go here ──
-          # aws deploy create-deployment --application-name ... --region ap-south-1
-          # kubectl apply -k k8s/overlays/india
-          # az webapp deploy --resource-group rg-india --name amplifi-prod-india ...
-          echo "Deployment complete for prod-india 🎉"
+          case "${{ inputs.target_region }}" in
+            india)
+              echo "region=india" >> $GITHUB_OUTPUT
+              echo "display_name=Production India" >> $GITHUB_OUTPUT
+              # echo "dockerfile=./k8s/india.Dockerfile" >> $GITHUB_OUTPUT   # if needed
+              ;;
+            canada)
+              echo "region=canada" >> $GITHUB_OUTPUT
+              echo "display_name=Production Canada" >> $GITHUB_OUTPUT
+              ;;
+            # Add cases for more regions
+            *)
+              echo "Unknown region: ${{ inputs.target_region }}"
+              exit 1
+              ;;
+          esac
 
-  # ── Canada deployment job ───────────────────────────────────────
-  deploy-prod-canada:
-    runs-on: ubuntu-latest
-    needs: validate
-    if: ${{ inputs.prod_canada == 'Yes' }}
-    environment: production-canada         # ← Uncomment when you create this environment
-    steps:
-      - name: 🧾 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🚀 Deploy to Production Canada
+      - name: 🚀 Deploy to ${{ steps.target.outputs.display_name }}
+        env:
+          REGION: ${{ steps.target.outputs.region }}
         run: |
-          echo "✅ Starting deployment to prod-canada..."
-          # ── Your real deploy commands go here ──
-          # aws deploy create-deployment --application-name ... --region ca-central-1
-          # kubectl apply -k k8s/overlays/canada
-          echo "Deployment complete for prod-canada 🎉"
-
-  # ── Example: how to add more jobs later ──────────────────────────
-  # deploy-prod-usa:
-  #   runs-on: ubuntu-latest
-  #   needs: validate
-  #   if: ${{ inputs.prod_usa == 'Yes' }}
-  #   environment: production-usa
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Deploy to USA
-  #       run: echo "Deploying to prod-usa..."
+          echo "Starting deployment to production-${REGION} ..."
+          echo "✅ Real deploy commands go here"
+          # aws deploy create-deployment --application-name my-app --deployment-group-name prod-${REGION} ...
+          # kubectl apply -k k8s/overlays/${REGION}
+          # az webapp deploy --name amplifi-prod-${REGION} ...
+          echo "Deployment complete for production-${REGION} 🎉"
