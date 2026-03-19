@@ -1,73 +1,106 @@
 name: 🚀 Deploy PRODUCTION
 
+# Shows selected region in the workflow run title
+run-name: Prod Deploy → ${{ inputs.target_region }}
+
 on:
   workflow_dispatch:
     inputs:
       target_region:
-        description: "Select Production Region to Deploy"
+        description: "Select the production region to deploy to"
         required: true
         type: choice
         options:
           - india
           - canada
-          # Add more regions here when needed
+          # Add more regions here when you need them
           # - usa
           # - uk
           # - australia
           # - germany
+          # - singapore
         default: india
-
-  # Optional: auto-deploy on version tags (like your Amplifi example)
-  # push:
-  #   tags: [ 'v[0-9]+.[0-9]+.[0-9]+*' ]
 
 concurrency:
   group: deploy-prod-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  validate:
+  validate-and-prepare:
     runs-on: ubuntu-latest
     steps:
       - name: Show selected region
         run: |
-          echo "Deploying to: ${{ inputs.target_region }}"
+          echo "Deployment target: ${{ inputs.target_region }}"
 
   deploy:
     runs-on: ubuntu-latest
-    needs: validate
-    environment: production-${{ inputs.target_region }}   # creates production-india, production-canada, etc.
+    needs: validate-and-prepare
+    environment: production-${{ inputs.target_region }}   # e.g. production-india, production-canada
     steps:
       - name: 🧾 Checkout code
         uses: actions/checkout@v4
 
-      - name: Determine deployment target
-        id: target
+      - name: Determine deployment details
+        id: details
         run: |
           case "${{ inputs.target_region }}" in
             india)
-              echo "region=india" >> $GITHUB_OUTPUT
               echo "display_name=Production India" >> $GITHUB_OUTPUT
-              # echo "dockerfile=./k8s/india.Dockerfile" >> $GITHUB_OUTPUT   # if needed
+              echo "region_short=india" >> $GITHUB_OUTPUT
               ;;
             canada)
-              echo "region=canada" >> $GITHUB_OUTPUT
               echo "display_name=Production Canada" >> $GITHUB_OUTPUT
+              echo "region_short=canada" >> $GITHUB_OUTPUT
               ;;
-            # Add cases for more regions
             *)
               echo "Unknown region: ${{ inputs.target_region }}"
               exit 1
               ;;
           esac
 
-      - name: 🚀 Deploy to ${{ steps.target.outputs.display_name }}
+      - name: 🚀 Deploy to ${{ steps.details.outputs.display_name }}
         env:
-          REGION: ${{ steps.target.outputs.region }}
+          REGION: ${{ steps.details.outputs.region_short }}
         run: |
-          echo "Starting deployment to production-${REGION} ..."
-          echo "✅ Real deploy commands go here"
+          echo ""
+          echo "=============================================================="
+          echo "🚀 DEPLOYMENT STARTED → Region: ${{ steps.details.outputs.display_name }}"
+          echo "=============================================================="
+          echo ""
+
+          # ── Replace with your actual deployment commands ──
+          echo "Deploying to production-${REGION} ..."
           # aws deploy create-deployment --application-name my-app --deployment-group-name prod-${REGION} ...
           # kubectl apply -k k8s/overlays/${REGION}
-          # az webapp deploy --name amplifi-prod-${REGION} ...
-          echo "Deployment complete for production-${REGION} 🎉"
+          # az webapp deploy --resource-group rg-${REGION} --name amplifi-prod-${REGION} ...
+          sleep 3   # ← just for demo
+
+          echo ""
+          echo "=============================================================="
+          echo "✅ DEPLOYMENT FINISHED SUCCESSFULLY → Region: ${{ steps.details.outputs.display_name }}"
+          echo "=============================================================="
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()
+    steps:
+      - name: 📊 Deployment Summary
+        run: |
+          echo ""
+          echo "=============================================================="
+          echo "           FINAL DEPLOYMENT SUMMARY"
+          echo "=============================================================="
+
+          if [[ "${{ needs.deploy.result }}" == "success" ]]; then
+            echo "✅ ${{ inputs.target_region }} → Deployed successfully"
+          elif [[ "${{ needs.deploy.result }}" == "skipped" ]]; then
+            echo "⏭️ ${{ inputs.target_region }} → Skipped"
+          else
+            echo "❌ ${{ inputs.target_region }} → Failed or cancelled"
+          fi
+
+          echo ""
+          echo "Selected region: ${{ inputs.target_region }}"
+          echo "=============================================================="
