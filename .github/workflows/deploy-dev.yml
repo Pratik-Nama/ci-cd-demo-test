@@ -3,43 +3,73 @@ name: 🚀 Deploy DEV
 on:
   workflow_dispatch:
     inputs:
-      dev_india:
-        description: "Deploy to dev-india?"
+      prod_india:
+        description: "Deploy to Production India?"
+        required: true
         type: choice
-        options: [no, yes]
-        default: no
+        options:
+          - 'No'
+          - 'Yes'
+        default: 'No'
+      prod_canada:
+        description: "Deploy to Production Canada?"
+        required: true
+        type: choice
+        options:
+          - 'No'
+          - 'Yes'
+        default: 'No'
 
-      dev_canada:
-        description: "Deploy to dev-canada?"
-        type: choice
-        options: [no, yes]
-        default: no
-
-      demo_india:
-        description: "Deploy to demo-india?"
-        type: choice
-        options: [no, yes]
-        default: no
+concurrency:
+  group: deploy-prod-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        include:
-          - env: dev-india
-            input: dev_india
-
-          - env: dev-canada
-            input: dev_canada
-
-          - env: demo-india
-            input: demo_india
-
     steps:
-      - uses: actions/checkout@v4
+      - name: ❌ Fail if nothing selected
+        run: |
+          if [[ "${{ inputs.prod_india }}" == 'No' && "${{ inputs.prod_canada }}" == 'No' ]]; then
+            echo "❌ Please select at least one region to deploy!"
+            exit 1
+          fi
 
-      - name: 🚀 Deploy DEV
-        if: github.event.inputs[matrix.input] == 'yes'
-        run: echo "✅ Deploying to ${{ matrix.env }}"
+      - name: Show selected regions
+        run: |
+          echo "Deploying to:"
+          echo "  India : ${{ inputs.prod_india }}"
+          echo "  Canada: ${{ inputs.prod_canada }}"
+
+  deploy-prod-india:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: ${{ inputs.prod_india == 'Yes' }}
+    # environment: production-india
+    steps:
+      - name: 🧾 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to Production India
+        run: |
+          echo "✅ Starting deployment to prod-india..."
+          # ── Your real deploy commands go here ──
+          # e.g. aws deploy create-deployment ...
+          #     kubectl apply -k k8s/overlays/india
+          #     ./deploy.sh --region india
+          echo "Deployment complete for prod-india 🎉"
+
+  deploy-prod-canada:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: ${{ inputs.prod_canada == 'Yes' }}  
+    # environment: production-canada
+    steps:
+      - name: 🧾 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to Production Canada
+        run: |
+          echo "✅ Starting deployment to prod-canada..."
+          # ── Your real deploy commands go here ──
+          echo "Deployment complete for prod-canada 🎉"
